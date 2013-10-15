@@ -2,7 +2,7 @@ fs = require 'fs'
 path = require 'path'
 vm = require 'vm'
 nodeREPL = require 'repl'
-CoffeeScript = require './coffee-script'
+MateScript = require './matescript'
 {merge, updateSyntaxError} = require './helpers'
 
 replDefaults =
@@ -21,7 +21,7 @@ replDefaults =
 
     try
       # Generate the AST of the clean input.
-      ast = CoffeeScript.nodes input
+      ast = MateScript.nodes input
       # Add assignment to `_` variable to force the input to be an expression.
       ast = new Block [
         new Assign (new Value new Literal '_'), ast, '='
@@ -128,7 +128,7 @@ module.exports =
     [major, minor, build] = process.versions.node.split('.').map (n) -> parseInt(n)
 
     if major is 0 and minor < 8
-      console.warn "Node 0.8.0+ required for CoffeeScript REPL"
+      console.warn "Node 0.8.0+ required for MateScript REPL"
       process.exit 1
 
     opts = merge replDefaults, opts

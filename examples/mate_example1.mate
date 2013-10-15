@@ -1,0 +1,25 @@
+add = (a, b) ->
+	a + b
+inc = (a, b = 1) ->
+	add a, b
+
+a = 2
+b = 7
+
+echo "add a, b = #{add a, b}\n"
+a = inc a
+echo "add a, b = #{add a, b}\n"
+
+obj =
+	title: 'a title'
+	description: """
+		Hello world!
+		Twice!
+		Here is #{a} and #{b}.
+	"""
+	meta:
+		layout: "default"
+		a: a
+		b: b
+
+print_r obj

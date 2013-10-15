@@ -1,7 +1,7 @@
 # `nodes.coffee` contains all of the node classes for the syntax tree. Most
 # nodes are created as the result of actions in the [grammar](grammar.html),
 # but some are created by other nodes as a method of code generation. To convert
-# the syntax tree into a string of JavaScript code, call `compile()` on the root.
+# the syntax tree into a string of PHP code, call `compile()` on the root.
 
 Error.stackTraceLimit = Infinity
 
@@ -45,7 +45,7 @@ fragmentsToText = (fragments) ->
 
 # The **Base** is the abstract base class for all nodes in the syntax tree.
 # Each subclass implements the `compileNode` method, which performs the
-# code generation for that node. To compile a node to JavaScript,
+# code generation for that node. To compile a node to PHP,
 # call `compile` on it, which wraps `compileNode` in some generic extra smarts,
 # to know when the generated code needs to be wrapped up in a closure.
 # An options hash is passed and cloned throughout, containing information about
@@ -323,7 +323,7 @@ exports.Block = class Block extends Base
       @expressions = rest
     fragments = @compileWithDeclarations o
     return fragments if o.bare
-    [].concat prelude, @makeCode("(function() {\n"), fragments, @makeCode("\n}).call(this);\n")
+    [].concat prelude, @makeCode("$__ = function() {\n"), fragments, @makeCode("\n};\n$__();\nunset($__);\n")
 
   # Compile the expressions body for the contents of a function, with
   # declarations of all inner variables pushed up to the top.
@@ -346,13 +346,15 @@ exports.Block = class Block extends Base
       assigns = scope.hasAssignments
       if declars or assigns
         fragments.push @makeCode '\n' if i
-        fragments.push @makeCode "#{@tab}var "
         if declars
-          fragments.push @makeCode scope.declaredVariables().join(', ')
+          fragments.push @makeCode "#{@tab}"
+          fragments.push @makeCode "$#{v} = " for v in scope.declaredVariables()
+          fragments.push @makeCode "null"
+          fragments.push @makeCode ";\n#{if @spaced then '\n' else ''}"
         if assigns
-          fragments.push @makeCode ",\n#{@tab + TAB}" if declars
-          fragments.push @makeCode scope.assignedVariables().join(",\n#{@tab + TAB}")
-        fragments.push @makeCode ";\n#{if @spaced then '\n' else ''}"
+          fragments.push @makeCode "#{@tab}"
+          fragments.push @makeCode "$A#{v} = " for v in scope.assignedVariables()
+          fragments.push @makeCode ";\n#{if @spaced then '\n' else ''}"
       else if fragments.length and post.length
         fragments.push @makeCode "\n"
     fragments.concat post
@@ -366,7 +368,7 @@ exports.Block = class Block extends Base
 #### Literal
 
 # Literals are static values that can be passed through directly into
-# JavaScript without translation, such as: strings, numbers,
+# PHP without translation, such as: strings, numbers,
 # `true`, `false`, `null`...
 exports.Literal = class Literal extends Base
   constructor: (@value) ->
@@ -514,7 +516,7 @@ exports.Value = class Value extends Base
       nref = new Index nref
     [base.add(name), new Value(bref or base.base, [nref or name])]
 
-  # We compile a value to JavaScript by compiling and joining each property.
+  # We compile a value to PHP by compiling and joining each property.
   # Things get much more interesting if the chain of properties has *soak*
   # operators `?.` interspersed. Then we have to take care not to accidentally
   # evaluate anything twice when building the soak chain.
@@ -523,7 +525,7 @@ exports.Value = class Value extends Base
     props = @properties
     fragments = @base.compileToFragments o, (if props.length then LEVEL_ACCESS else null)
     if (@base instanceof Parens or props.length) and SIMPLENUM.test fragmentsToText fragments
-      fragments.push @makeCode '.'
+      fragments.push @makeCode '->'
     for prop in props
       fragments.push (prop.compileToFragments o)...
     fragments
@@ -547,7 +549,7 @@ exports.Value = class Value extends Base
 
 #### Comment
 
-# CoffeeScript passes through block comments as JavaScript block comments
+# MateScript passes through block comments as PHP block comments
 # at the same position.
 exports.Comment = class Comment extends Base
   constructor: (@comment) ->
@@ -656,7 +658,7 @@ exports.Call = class Call extends Base
     fragments.push @makeCode ")"
     fragments
 
-  # If you call a function with a splat, it's converted into a JavaScript
+  # If you call a function with a splat, it's converted into a PHP
   # `.apply()` call to allow an array of arguments to be passed.
   # If it's a constructor, then things get real tricky. We have to inject an
   # inner constructor in order to be able to pass the varargs.
@@ -725,7 +727,7 @@ exports.Access = class Access extends Base
   compileToFragments: (o) ->
     name = @name.compileToFragments o
     if IDENTIFIER.test fragmentsToText name
-      name.unshift @makeCode "."
+      name.unshift @makeCode "->"
     else
       name.unshift @makeCode "["
       name.push @makeCode "]"
@@ -843,7 +845,7 @@ exports.Range = class Range extends Base
 
 #### Slice
 
-# An array slice literal. Unlike JavaScript's `Array#slice`, the second parameter
+# An array slice literal. Unlike PHP's `Array#slice`, the second parameter
 # specifies the index of the end of the slice, just as the first parameter
 # is the index of the beginning.
 exports.Slice = class Slice extends Base
@@ -884,7 +886,7 @@ exports.Obj = class Obj extends Base
 
   compileNode: (o) ->
     props = @properties
-    return [@makeCode(if @front then '({})' else '{}')] unless props.length
+    return [@makeCode('array()')] unless props.length
     if @generated
       for node in props when node instanceof Value
         node.error 'cannot have an implicit value in an implicit object'
@@ -908,10 +910,11 @@ exports.Obj = class Obj extends Base
           prop = new Assign prop, prop, 'object'
         (prop.variable.base or prop.variable).asKey = yes
       if indent then answer.push @makeCode indent
+      prop.variable.base.value = "\"#{prop.variable.base.value}\""
       answer.push prop.compileToFragments(o, LEVEL_TOP)...
       if join then answer.push @makeCode join
-    answer.unshift @makeCode "{#{ props.length and '\n' }"
-    answer.push @makeCode "#{ props.length and '\n' + @tab }}"
+    answer.unshift @makeCode "array(#{ props.length and '\n' }"
+    answer.push @makeCode "#{ props.length and '\n' + @tab })"
     if @front then @wrapInBraces answer else answer
 
   assigns: (name) ->
@@ -928,7 +931,7 @@ exports.Arr = class Arr extends Base
   children: ['objects']
 
   compileNode: (o) ->
-    return [@makeCode '[]'] unless @objects.length
+    return [@makeCode 'array()'] unless @objects.length
     o.indent += TAB
     answer = Splat.compileSplattedArray o, @objects
     return answer if answer.length
@@ -940,11 +943,11 @@ exports.Arr = class Arr extends Base
         answer.push @makeCode ", "
       answer.push fragments...
     if fragmentsToText(answer).indexOf('\n') >= 0
-      answer.unshift @makeCode "[\n#{o.indent}"
-      answer.push @makeCode "\n#{@tab}]"
+      answer.unshift @makeCode "array(\n#{o.indent}"
+      answer.push @makeCode "\n#{@tab})"
     else
-      answer.unshift @makeCode "["
-      answer.push @makeCode "]"
+      answer.unshift @makeCode "array("
+      answer.push @makeCode ")"
     answer
 
   assigns: (name) ->
@@ -953,7 +956,7 @@ exports.Arr = class Arr extends Base
 
 #### Class
 
-# The CoffeeScript class definition.
+# The MateScript class definition.
 # Initialize a **Class** with its name, an optional superclass, and a
 # list of prototype property assignments.
 exports.Class = class Class extends Base
@@ -1071,7 +1074,7 @@ exports.Class = class Class extends Base
       @addBoundFunctions o
 
 
-  # Instead of generating the JavaScript string directly, we build up the
+  # Instead of generating the PHP string directly, we build up the
   # equivalent syntax tree and compile that, in pieces. You can see the
   # constructor, property assignments, and inheritance getting built out below.
   compileNode: (o) ->
@@ -1134,7 +1137,7 @@ exports.Assign = class Assign extends Base
       return @compilePatternMatch o if @variable.isArray() or @variable.isObject()
       return @compileSplice       o if @variable.isSplice()
       return @compileConditional  o if @context in ['||=', '&&=', '?=']
-    compiledName = @variable.compileToFragments o, LEVEL_LIST
+    compiledName = @variable.compileToFragments o, LEVEL_LIST # TODO: add $ there?
     name = fragmentsToText compiledName
     unless @context
       varBase = @variable.unwrapAll()
@@ -1149,7 +1152,7 @@ exports.Assign = class Assign extends Base
       @value.klass = match[1] if match[1]
       @value.name  = match[2] ? match[3] ? match[4] ? match[5]
     val = @value.compileToFragments o, LEVEL_LIST
-    return (compiledName.concat @makeCode(": "), val) if @context is 'object'
+    return (compiledName.concat @makeCode(" => "), val) if @context is 'object'
     answer = compiledName.concat @makeCode(" #{ @context or '=' } "), val
     if o.level <= LEVEL_LIST then answer else @wrapInBraces answer
 
@@ -1242,7 +1245,7 @@ exports.Assign = class Assign extends Base
     if "?" in @context then o.isExistentialEquals = true
     new Op(@context[...-1], left, new Assign(right, @value, '=')).compileToFragments o
 
-  # Compile the assignment from an array splice literal, using JavaScript's
+  # Compile the assignment from an array splice literal, using PHP's
   # `Array#splice` method.
   compileSplice: (o) ->
     {range: {from, to, exclusive}} = @variable.properties.pop()
@@ -1284,7 +1287,7 @@ exports.Code = class Code extends Base
 
   # Compilation creates a new scope unless explicitly asked to share with the
   # outer scope. Handles splat parameters in the parameter list by peeking at
-  # the JavaScript `arguments` object. If the function is bound with the `=>`
+  # the PHP `arguments` object. If the function is bound with the `=>`
   # arrow, generates a wrapper that saves the current value of `this` through
   # a closure.
   compileNode: (o) ->
@@ -1340,7 +1343,7 @@ exports.Code = class Code extends Base
     for p, i in params
       if i then answer.push @makeCode ", "
       answer.push p...
-    answer.push @makeCode ') {'
+    answer.push @makeCode ') use (?) {'
     answer = answer.concat(@makeCode("\n"), @body.compileWithDeclarations(o), @makeCode("\n#{@tab}")) unless @body.isEmpty()
     answer.push @makeCode '}'
 
@@ -1470,7 +1473,7 @@ exports.Splat = class Splat extends Base
 
 #### While
 
-# A while loop, the only sort of low-level loop exposed by CoffeeScript. From
+# A while loop, the only sort of low-level loop exposed by MateScript. From
 # it, all other loops can be manufactured. Useful in cases where you need more
 # flexibility or more speed than a comprehension can provide.
 exports.While = class While extends Base
@@ -1499,7 +1502,7 @@ exports.While = class While extends Base
       return node if node.jumps loop: yes
     no
 
-  # The main difference from a JavaScript *while* is that the CoffeeScript
+  # The main difference from a PHP *while* is that the MateScript
   # *while* can be used as a part of a larger expression -- while loops may
   # return an array containing the computed result of each iteration.
   compileNode: (o) ->
@@ -1527,7 +1530,7 @@ exports.While = class While extends Base
 #### Op
 
 # Simple Arithmetic and logical operations. Performs some conversion from
-# CoffeeScript operations into their JavaScript equivalents.
+# MateScript operations into their PHP equivalents.
 exports.Op = class Op extends Base
   constructor: (op, first, second, flip ) ->
     return new In first, second if op is 'in'
@@ -1542,7 +1545,7 @@ exports.Op = class Op extends Base
     @flip     = !!flip
     return this
 
-  # The map of conversions from CoffeeScript to JavaScript symbols.
+  # The map of conversions from MateScript to PHP symbols.
   CONVERSIONS =
     '==': '==='
     '!=': '!=='
@@ -1772,7 +1775,7 @@ exports.Throw = class Throw extends Base
 #### Existence
 
 # Checks a variable for existence -- not *null* and not *undefined*. This is
-# similar to `.nil?` in Ruby, and avoids having to consult a JavaScript truth
+# similar to `.nil?` in Ruby, and avoids having to consult a PHP truth
 # table.
 exports.Existence = class Existence extends Base
   constructor: (@expression) ->
@@ -1819,7 +1822,7 @@ exports.Parens = class Parens extends Base
 
 #### For
 
-# CoffeeScript's replacement for the *for* loop is our array and object
+# MateScript's replacement for the *for* loop is our array and object
 # comprehensions, that compile into *for* loops here. They also act as an
 # expression, able to return the result of each filtered iteration.
 #
@@ -1843,7 +1846,7 @@ exports.For = class For extends While
 
   children: ['body', 'source', 'guard', 'step']
 
-  # Welcome to the hairiest method in all of CoffeeScript. Handles the inner
+  # Welcome to the hairiest method in all of MateScript. Handles the inner
   # loop, filtering, stepping, and result saving for array, object, and range
   # comprehensions. Some of the generated code can be shared in common, and
   # some cannot.
@@ -1942,7 +1945,7 @@ exports.For = class For extends While
 
 #### Switch
 
-# A JavaScript *switch* statement. Converts into a returnable expression on-demand.
+# A PHP *switch* statement. Converts into a returnable expression on-demand.
 exports.Switch = class Switch extends Base
   constructor: (@subject, @cases, @otherwise) ->
 

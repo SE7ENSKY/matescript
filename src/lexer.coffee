@@ -1,4 +1,4 @@
-# The CoffeeScript Lexer. Uses a series of token-matching regexes to attempt
+# The MateScript Lexer. Uses a series of token-matching regexes to attempt
 # matches against the beginning of the source code. When a match is found,
 # a token is produced, we consume the match, and start again. Tokens are in the
 # form:
@@ -7,7 +7,7 @@
 #
 # where locationData is {first_line, first_column, last_line, last_column}, which is a
 # format that can be fed directly into [Jison](http://github.com/zaach/jison).  These
-# are read by jison in the `parser.lexer` function defined in coffee-script.coffee.
+# are read by jison in the `parser.lexer` function defined in matescript.coffee.
 
 {Rewriter, INVERSES} = require './rewriter'
 
@@ -18,7 +18,7 @@ locationDataToString,  throwSyntaxError} = require './helpers'
 # The Lexer Class
 # ---------------
 
-# The Lexer class reads a stream of CoffeeScript and divvies it up into tagged
+# The Lexer class reads a stream of MateScript and divvies it up into tagged
 # tokens. Some potential ambiguity in the grammar has been avoided by
 # pushing some extra smarts into the Lexer.
 exports.Lexer = class Lexer
@@ -35,7 +35,7 @@ exports.Lexer = class Lexer
   # Before returning the token stream, run it through the [Rewriter](rewriter.html)
   # unless explicitly asked not to.
   tokenize: (code, opts = {}) ->
-    @literate   = opts.literate  # Are we lexing literate CoffeeScript?
+    @literate   = opts.literate  # Are we lexing literate MateScript?
     @indent     = 0              # The current indentation level.
     @baseIndent = 0              # The overall minimum indentation level
     @indebt     = 0              # The over-indentation at the current level.
@@ -78,7 +78,7 @@ exports.Lexer = class Lexer
     (new Rewriter).rewrite @tokens
 
   # Preprocess the code to remove leading and trailing whitespace, carriage
-  # returns, etc. If we're lexing literate CoffeeScript, strip external Markdown
+  # returns, etc. If we're lexing literate MateScript, strip external Markdown
   # by removing all lines that aren't indented by at least four spaces or a tab.
   clean: (code) ->
     code = code.slice(1) if code.charCodeAt(0) is BOM
@@ -93,9 +93,9 @@ exports.Lexer = class Lexer
   # ----------
 
   # Matches identifying literals: variables, keywords, method names, etc.
-  # Check to ensure that JavaScript reserved words aren't being used as
-  # identifiers. Because CoffeeScript reserves a handful of keywords that are
-  # allowed in JavaScript, we're careful not to tag them as keywords when
+  # Check to ensure that PHP reserved words aren't being used as
+  # identifiers. Because MateScript reserves a handful of keywords that are
+  # allowed in PHP, we're careful not to tag them as keywords when
   # referenced as property names here, so you can still do `jQuery.is()` even
   # though `is` means `===` otherwise.
   identifierToken: ->
@@ -227,7 +227,7 @@ exports.Lexer = class Lexer
         0, comment.length
     comment.length
 
-  # Matches JavaScript interpolated directly into the source via backticks.
+  # Matches PHP interpolated directly into the source via backticks.
   jsToken: ->
     return 0 unless @chunk.charAt(0) is '`' and match = JSTOKEN.exec @chunk
     @token 'JS', (script = match[0])[1...-1], 0, script.length
@@ -235,7 +235,7 @@ exports.Lexer = class Lexer
 
   # Matches regular expression literals. Lexing regular expressions is difficult
   # to distinguish from division, so we borrow some basic heuristics from
-  # JavaScript and Ruby.
+  # PHP and Ruby.
   regexToken: ->
     return 0 if @chunk.charAt(0) isnt '/'
     if match = HEREGEX.exec @chunk
@@ -706,7 +706,7 @@ exports.Lexer = class Lexer
 # Constants
 # ---------
 
-# Keywords that CoffeeScript shares in common with JavaScript.
+# Keywords that MateScript shares in common with PHP.
 JS_KEYWORDS = [
   'true', 'false', 'null', 'this'
   'new', 'delete', 'typeof', 'in', 'instanceof'
@@ -715,7 +715,7 @@ JS_KEYWORDS = [
   'class', 'extends', 'super'
 ]
 
-# CoffeeScript-only keywords.
+# MateScript-only keywords.
 COFFEE_KEYWORDS = ['undefined', 'then', 'unless', 'until', 'loop', 'of', 'by', 'when']
 
 COFFEE_ALIAS_MAP =
@@ -732,9 +732,9 @@ COFFEE_ALIAS_MAP =
 COFFEE_ALIASES  = (key for key of COFFEE_ALIAS_MAP)
 COFFEE_KEYWORDS = COFFEE_KEYWORDS.concat COFFEE_ALIASES
 
-# The list of keywords that are reserved by JavaScript, but not used, or are
-# used by CoffeeScript internally. We throw an error when these are encountered,
-# to avoid having a JavaScript error at runtime.
+# The list of keywords that are reserved by PHP, but not used, or are
+# used by MateScript internally. We throw an error when these are encountered,
+# to avoid having a PHP error at runtime.
 RESERVED = [
   'case', 'default', 'function', 'var', 'void', 'with', 'const', 'let', 'enum'
   'export', 'import', 'native', '__hasProp', '__extends', '__slice', '__bind'
@@ -744,7 +744,7 @@ RESERVED = [
 
 STRICT_PROSCRIBED = ['arguments', 'eval']
 
-# The superset of both JavaScript keywords and reserved words, none of which may
+# The superset of both PHP keywords and reserved words, none of which may
 # be used as identifiers or properties.
 JS_FORBIDDEN = JS_KEYWORDS.concat(RESERVED).concat(STRICT_PROSCRIBED)
 

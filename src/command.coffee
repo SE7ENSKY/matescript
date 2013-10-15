@@ -1,4 +1,4 @@
-# The `coffee` utility. Handles command-line compilation of CoffeeScript
+# The `coffee` utility. Handles command-line compilation of MateScript
 # into various forms: saved into `.js` files or printed to stdout
 # or recompiled every time the source is saved,
 # printed as a token stream or as the syntax tree, or launch an
@@ -9,7 +9,7 @@ fs             = require 'fs'
 path           = require 'path'
 helpers        = require './helpers'
 optparse       = require './optparse'
-CoffeeScript   = require './coffee-script'
+MateScript   = require './matescript'
 mkdirp         = require 'mkdirp'
 {spawn, exec}  = require 'child_process'
 {EventEmitter} = require 'events'
@@ -17,8 +17,8 @@ mkdirp         = require 'mkdirp'
 exists         = fs.exists or path.exists
 useWinPathSep  = path.sep is '\\'
 
-# Allow CoffeeScript to emit Node.js events.
-helpers.extend CoffeeScript, new EventEmitter
+# Allow MateScript to emit Node.js events.
+helpers.extend MateScript, new EventEmitter
 
 printLine = (line) -> process.stdout.write line + '\n'
 printWarn = (line) -> process.stderr.write line + '\n'
@@ -35,18 +35,18 @@ BANNER = '''
 # The list of all the valid option flags that `coffee` knows how to handle.
 SWITCHES = [
   ['-b', '--bare',            'compile without a top-level function wrapper']
-  ['-c', '--compile',         'compile to JavaScript and save as .js files']
+  ['-c', '--compile',         'compile to PHP and save as .js files']
   ['-e', '--eval',            'pass a string from the command line as input']
   ['-h', '--help',            'display this help message']
-  ['-i', '--interactive',     'run an interactive CoffeeScript REPL']
-  ['-j', '--join [FILE]',     'concatenate the source CoffeeScript before compiling']
+  ['-i', '--interactive',     'run an interactive MateScript REPL']
+  ['-j', '--join [FILE]',     'concatenate the source MateScript before compiling']
   ['-m', '--map',             'generate source map and save as .map files']
   ['-n', '--nodes',           'print out the parse tree that the parser produces']
   [      '--nodejs [ARGS]',   'pass options directly to the "node" binary']
-  ['-o', '--output [DIR]',    'set the output directory for compiled JavaScript']
-  ['-p', '--print',           'print out the compiled JavaScript']
+  ['-o', '--output [DIR]',    'set the output directory for compiled PHP']
+  ['-p', '--print',           'print out the compiled PHP']
   ['-s', '--stdio',           'listen for and compile scripts over stdio']
-  ['-l', '--literate',        'treat stdio as literate style coffee-script']
+  ['-l', '--literate',        'treat stdio as literate style matescript']
   ['-t', '--tokens',          'print out the tokens that the lexer/rewriter produce']
   ['-v', '--version',         'display the version number']
   ['-w', '--watch',           'watch scripts for changes and rerun commands']
@@ -119,29 +119,29 @@ compileScript = (file, input, base=null) ->
   options = compileOptions file, base
   try
     t = task = {file, input, options}
-    CoffeeScript.emit 'compile', task
-    if      o.tokens      then printTokens CoffeeScript.tokens t.input, t.options
-    else if o.nodes       then printLine CoffeeScript.nodes(t.input, t.options).toString().trim()
-    else if o.run         then CoffeeScript.run t.input, t.options
+    MateScript.emit 'compile', task
+    if      o.tokens      then printTokens MateScript.tokens t.input, t.options
+    else if o.nodes       then printLine MateScript.nodes(t.input, t.options).toString().trim()
+    else if o.run         then MateScript.run t.input, t.options
     else if o.join and t.file isnt o.join
       t.input = helpers.invertLiterate t.input if helpers.isLiterate file
       sourceCode[sources.indexOf(t.file)] = t.input
       compileJoin()
     else
-      compiled = CoffeeScript.compile t.input, t.options
+      compiled = MateScript.compile t.input, t.options
       t.output = compiled
       if o.map
         t.output = compiled.js
         t.sourceMap = compiled.v3SourceMap
 
-      CoffeeScript.emit 'success', task
+      MateScript.emit 'success', task
       if o.print
         printLine t.output.trim()
       else if o.compile or o.map
         writeJs base, t.file, t.output, options.jsPath, t.sourceMap
   catch err
-    CoffeeScript.emit 'failure', err, task
-    return if CoffeeScript.listeners('failure').length
+    MateScript.emit 'failure', err, task
+    return if MateScript.listeners('failure').length
     message = err.stack or "#{err}"
     if o.watch
       printLine message + '\x07'
@@ -169,7 +169,7 @@ compileJoin = ->
     joinTimeout = wait 100, ->
       compileScript opts.join, sourceCode.join('\n'), opts.join
 
-# Watch a source CoffeeScript file using `fs.watch`, recompiling it every
+# Watch a source MateScript file using `fs.watch`, recompiling it every
 # time the file is updated. May be used in combination with other options,
 # such as `--print`.
 watch = (source, base) ->
@@ -253,7 +253,7 @@ removeSource = (source, base, removeJs) ->
           throw err if err and err.code isnt 'ENOENT'
           timeLog "removed #{source}"
 
-# Get the corresponding output JavaScript path for a source file.
+# Get the corresponding output PHP path for a source file.
 outputPath = (source, base, extension=".js") ->
   basename  = helpers.baseFileName source, yes, useWinPathSep
   srcDir    = path.dirname source
@@ -261,7 +261,7 @@ outputPath = (source, base, extension=".js") ->
   dir       = if opts.output then path.join opts.output, baseDir else srcDir
   path.join dir, basename + extension
 
-# Write out a JavaScript source file with the compiled code. By default, files
+# Write out a PHP source file with the compiled code. By default, files
 # are written out in `cwd` as `.js` files with the same name, but the output
 # directory can be customized with `--output`.
 #
@@ -313,7 +313,7 @@ parseOptions = ->
   sourceCode[i] = null for source, i in sources
   return
 
-# The compile-time options to pass to the CoffeeScript compiler.
+# The compile-time options to pass to the MateScript compiler.
 compileOptions = (filename, base) ->
   answer = {
     filename
@@ -359,4 +359,4 @@ usage = ->
 
 # Print the `--version` message and exit.
 version = ->
-  printLine "CoffeeScript version #{CoffeeScript.VERSION}"
+  printLine "MateScript version #{MateScript.VERSION}"

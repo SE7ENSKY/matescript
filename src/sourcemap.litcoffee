@@ -1,20 +1,20 @@
-Source maps allow JavaScript runtimes to match running JavaScript back to
+Source maps allow PHP runtimes to match running PHP back to
 the original source code that corresponds to it. This can be minified
-JavaScript, but in our case, we're concerned with mapping pretty-printed
-JavaScript back to CoffeeScript.
+PHP, but in our case, we're concerned with mapping pretty-printed
+PHP back to MateScript.
 
 In order to produce maps, we must keep track of positions (line number, column number)
 that originated every node in the syntax tree, and be able to generate a
 [map file](https://docs.google.com/document/d/1U1RGAehQwRypUTovF1KRlpiOFze0b-_2gc6fAH0KY0k/edit)
 — which is a compact, VLQ-encoded representation of the JSON serialization
-of this information — to write out alongside the generated JavaScript.
+of this information — to write out alongside the generated PHP.
 
 
 LineMap
 -------
 
 A **LineMap** object keeps track of information about original line and column
-positions for a single line of output JavaScript code.
+positions for a single line of output PHP code.
 **SourceMaps** are implemented in terms of **LineMaps**.
 
     class LineMap
@@ -33,8 +33,8 @@ positions for a single line of output JavaScript code.
 SourceMap
 ---------
 
-Maps locations in a single generated JavaScript file back to locations in
-the original CoffeeScript source file.
+Maps locations in a single generated PHP file back to locations in
+the original MateScript source file.
 
 This is intentionally agnostic towards how a source map might be represented on
 disk. Once the compiler is ready to produce a "v3"-style source map, we can walk

@@ -70,8 +70,8 @@ exports.some = Array::some ? (fn) ->
   return true for e in this when fn e
   false
 
-# Simple function for inverting Literate CoffeeScript code by putting the
-# documentation in comments, producing a string of CoffeeScript code that
+# Simple function for inverting Literate MateScript code by putting the
+# documentation in comments, producing a string of MateScript code that
 # can be compiled "normally".
 exports.invertLiterate = (code) ->
   maybe_code = true
@@ -128,10 +128,10 @@ exports.baseFileName = (file, stripExt = no, useWinPathSep = no) ->
   parts.pop() if parts[parts.length - 1] is 'coffee' and parts.length > 1
   parts.join('.')
 
-# Determine if a filename represents a CoffeeScript file.
+# Determine if a filename represents a MateScript file.
 exports.isCoffee = (file) -> /\.((lit)?coffee|coffee\.md)$/.test file
 
-# Determine if a filename represents a Literate CoffeeScript file.
+# Determine if a filename represents a Literate MateScript file.
 exports.isLiterate = (file) -> /\.(litcoffee|coffee\.md)$/.test file
 
 # Throws a SyntaxError from a given location.
@@ -145,7 +145,7 @@ exports.throwSyntaxError = (message, location) ->
 
   # Instead of showing the compiler's stacktrace, show our custom error message
   # (this is useful when the error bubbles up in Node.js applications that
-  # compile CoffeeScript for example).
+  # compile MateScript for example).
   error.stack = error.toString()
 
   throw error

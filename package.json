@@ -1,29 +1,25 @@
 {
-  "name":         "coffee-script",
-  "description":  "Unfancy JavaScript",
-  "keywords":     ["javascript", "language", "coffeescript", "compiler"],
-  "author":       "Jeremy Ashkenas",
+  "name":         "matescript",
+  "description":  "MateScript is CoffeeScript than compiles to PHP. Project is in incubating state.",
+  "keywords":     ["matescript", "language", "mate", "coffeescript", "coffee", "php", "compiler", "preprocessor"],
+  "author":       "Ivan Kravchenko",
   "version":      "1.6.3",
   "license":      "MIT",
   "engines":      {
     "node":       ">=0.8.0"
   },
   "directories" : {
-    "lib" : "./lib/coffee-script"
+    "lib" : "./lib/matescript"
   },
-  "main" : "./lib/coffee-script/coffee-script",
+  "main" : "./lib/matescript/matescript",
   "bin":          {
-    "coffee":     "./bin/coffee",
-    "cake":       "./bin/cake"
+    "mate":       "./bin/mate",
   },
-  "scripts": {
-    "test": "node ./bin/cake test"
-  },
-  "homepage":     "http://coffeescript.org",
-  "bugs":         "https://github.com/jashkenas/coffee-script/issues",
+  "homepage":     "http://matescript.com",
+  "bugs":         "https://github.com/Se7enSky/matescript/issues",
   "repository":   {
     "type": "git",
-    "url": "git://github.com/jashkenas/coffee-script.git"
+    "url": "git://github.com/Se7enSky/matescript.git"
   },
   "devDependencies": {
     "uglify-js":  "~2.2",

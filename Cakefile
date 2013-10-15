@@ -1,8 +1,8 @@
 fs            = require 'fs'
 path          = require 'path'
-CoffeeScript  = require './lib/coffee-script'
+MateScript  = require './lib/matescript'
 {spawn, exec} = require 'child_process'
-helpers       = require './lib/coffee-script/helpers'
+helpers       = require './lib/matescript/helpers'
 
 # ANSI Terminal Colors.
 bold = red = green = reset = ''
@@ -15,23 +15,24 @@ unless process.env.NODE_DISABLE_COLORS
 # Built file header.
 header = """
   /**
-   * CoffeeScript Compiler v#{CoffeeScript.VERSION}
-   * http://coffeescript.org
+   * MateScript Compiler v#{MateScript.VERSION}
+   * http://matescript.com
    *
+   * Copyright 2013, Ivan Kravchenko
    * Copyright 2011, Jeremy Ashkenas
    * Released under the MIT License
    */
 """
 
-# Build the CoffeeScript language from source.
+# Build the MateScript language from source.
 build = (cb) ->
   files = fs.readdirSync 'src'
-  files = ('src/' + file for file in files when file.match(/\.(lit)?coffee$/))
-  run ['-c', '-o', 'lib/coffee-script'].concat(files), cb
+  files = ('src/' + file for file in files when file.match(/\.(lit)?mate$/))
+  run ['-c', '-o', 'lib/matescript'].concat(files), cb
 
-# Run a CoffeeScript through our node/coffee interpreter.
+# Run a MateScript through our node/mate interpreter.
 run = (args, cb) ->
-  proc =         spawn 'node', ['bin/coffee'].concat(args)
+  proc =         spawn 'node', ['bin/mate'].concat(args)
   proc.stderr.on 'data', (buffer) -> console.log buffer.toString()
   proc.on        'exit', (status) ->
     process.exit(1) if status != 0
@@ -43,32 +44,32 @@ log = (message, color, explanation) ->
 
 option '-p', '--prefix [DIR]', 'set the installation prefix for `cake install`'
 
-task 'install', 'install CoffeeScript into /usr/local (or --prefix)', (options) ->
+task 'install', 'install MateScript into /usr/local (or --prefix)', (options) ->
   base = options.prefix or '/usr/local'
-  lib  = "#{base}/lib/coffee-script"
+  lib  = "#{base}/lib/matescript"
   bin  = "#{base}/bin"
-  node = "~/.node_libraries/coffee-script"
-  console.log   "Installing CoffeeScript to #{lib}"
+  node = "~/.node_libraries/matescript"
+  console.log   "Installing MateScript to #{lib}"
   console.log   "Linking to #{node}"
-  console.log   "Linking 'coffee' to #{bin}/coffee"
+  console.log   "Linking 'mate' to #{bin}/mate"
   exec([
     "mkdir -p #{lib} #{bin}"
     "cp -rf bin lib LICENSE README package.json src #{lib}"
-    "ln -sfn #{lib}/bin/coffee #{bin}/coffee"
+    "ln -sfn #{lib}/bin/mate #{bin}/mate"
     "ln -sfn #{lib}/bin/cake #{bin}/cake"
     "mkdir -p ~/.node_libraries"
-    "ln -sfn #{lib}/lib/coffee-script #{node}"
+    "ln -sfn #{lib}/lib/matescript #{node}"
   ].join(' && '), (err, stdout, stderr) ->
     if err then console.log stderr.trim() else log 'done', green
   )
 
 
-task 'build', 'build the CoffeeScript language from source', build
+task 'build', 'build the MateScript language from source', build
 
 task 'build:full', 'rebuild the source twice, and run the tests', ->
   build ->
     build ->
-      csPath = './lib/coffee-script'
+      csPath = './lib/matescript'
       csDir  = path.dirname require.resolve csPath
 
       for mod of require.cache when csDir is mod[0 ... csDir.length]
@@ -81,44 +82,44 @@ task 'build:full', 'rebuild the source twice, and run the tests', ->
 task 'build:parser', 'rebuild the Jison parser (run build first)', ->
   helpers.extend global, require('util')
   require 'jison'
-  parser = require('./lib/coffee-script/grammar').parser
-  fs.writeFile 'lib/coffee-script/parser.js', parser.generate()
+  parser = require('./lib/matescript/grammar').parser
+  fs.writeFile 'lib/matescript/parser.js', parser.generate()
 
 
 task 'build:ultraviolet', 'build and install the Ultraviolet syntax highlighter', ->
-  exec 'plist2syntax ../coffee-script-tmbundle/Syntaxes/CoffeeScript.tmLanguage', (err) ->
+  exec 'plist2syntax ../matescript-tmbundle/Syntaxes/MateScript.tmLanguage', (err) ->
     throw err if err
-    exec 'sudo mv coffeescript.yaml /usr/local/lib/ruby/gems/1.8/gems/ultraviolet-0.10.2/syntax/coffeescript.syntax'
+    exec 'sudo mv matescript.yaml /usr/local/lib/ruby/gems/1.8/gems/ultraviolet-0.10.2/syntax/matescript.syntax'
 
 
 task 'build:browser', 'rebuild the merged script for inclusion in the browser', ->
   code = ''
-  for name in ['helpers', 'rewriter', 'lexer', 'parser', 'scope', 'nodes', 'sourcemap', 'coffee-script', 'browser']
+  for name in ['helpers', 'rewriter', 'lexer', 'parser', 'scope', 'nodes', 'sourcemap', 'matescript', 'browser']
     code += """
       require['./#{name}'] = (function() {
         var exports = {}, module = {exports: exports};
-        #{fs.readFileSync "lib/coffee-script/#{name}.js"}
+        #{fs.readFileSync "lib/matescript/#{name}.js"}
         return module.exports;
       })();
     """
   code = """
     (function(root) {
-      var CoffeeScript = function() {
+      var MateScript = function() {
         function require(path){ return require[path]; }
         #{code}
-        return require['./coffee-script'];
+        return require['./matescript'];
       }();
 
       if (typeof define === 'function' && define.amd) {
-        define(function() { return CoffeeScript; });
+        define(function() { return MateScript; });
       } else {
-        root.CoffeeScript = CoffeeScript;
+        root.MateScript = MateScript;
       }
     }(this));
   """
   unless process.env.MINIFY is 'false'
     {code} = require('uglify-js').minify code, fromString: true
-  fs.writeFileSync 'extras/coffee-script.js', header + '\n' + code
+  fs.writeFileSync 'extras/matescript.js', header + '\n' + code
   console.log "built ... running browser tests:"
   invoke 'test:browser'
 
@@ -129,38 +130,38 @@ task 'doc:site', 'watch and continually rebuild the documentation for the websit
 
 
 task 'doc:source', 'rebuild the internal documentation', ->
-  exec 'docco src/*.*coffee && cp -rf docs documentation && rm -r docs', (err) ->
+  exec 'docco src/*.*mate && cp -rf docs documentation && rm -r docs', (err) ->
     throw err if err
 
 
-task 'doc:underscore', 'rebuild the Underscore.coffee documentation page', ->
-  exec 'docco examples/underscore.coffee && cp -rf docs documentation && rm -r docs', (err) ->
+task 'doc:underscore', 'rebuild the Underscore.mate documentation page', ->
+  exec 'docco examples/underscore.mate && cp -rf docs documentation && rm -r docs', (err) ->
     throw err if err
 
 task 'bench', 'quick benchmark of compilation time', ->
-  {Rewriter} = require './lib/coffee-script/rewriter'
-  sources = ['coffee-script', 'grammar', 'helpers', 'lexer', 'nodes', 'rewriter']
-  coffee  = sources.map((name) -> fs.readFileSync "src/#{name}.coffee").join '\n'
-  litcoffee = fs.readFileSync("src/scope.litcoffee").toString()
+  {Rewriter} = require './lib/matescript/rewriter'
+  sources = ['matescript', 'grammar', 'helpers', 'lexer', 'nodes', 'rewriter']
+  mate  = sources.map((name) -> fs.readFileSync "src/#{name}.mate").join '\n'
+  litmate = fs.readFileSync("src/scope.litmate").toString()
   fmt    = (ms) -> " #{bold}#{ "   #{ms}".slice -4 }#{reset} ms"
   total  = 0
   now    = Date.now()
   time   = -> total += ms = -(now - now = Date.now()); fmt ms
-  tokens = CoffeeScript.tokens coffee, rewrite: no
-  littokens = CoffeeScript.tokens litcoffee, rewrite: no, literate: yes
+  tokens = MateScript.tokens mate, rewrite: no
+  littokens = MateScript.tokens litmate, rewrite: no, literate: yes
   tokens = tokens.concat(littokens)
   console.log "Lex    #{time()} (#{tokens.length} tokens)"
   tokens = new Rewriter().rewrite tokens
   console.log "Rewrite#{time()} (#{tokens.length} tokens)"
-  nodes  = CoffeeScript.nodes tokens
+  nodes  = MateScript.nodes tokens
   console.log "Parse  #{time()}"
   js     = nodes.compile bare: yes
   console.log "Compile#{time()} (#{js.length} chars)"
   console.log "total  #{ fmt total }"
 
 
-# Run the CoffeeScript test suite.
-runTests = (CoffeeScript) ->
+# Run the MateScript test suite.
+runTests = (MateScript) ->
   startTime   = Date.now()
   currentFile = null
   passedTests = 0
@@ -169,8 +170,8 @@ runTests = (CoffeeScript) ->
   global[name] = func for name, func of require 'assert'
 
   # Convenience aliases.
-  global.CoffeeScript = CoffeeScript
-  global.Repl = require './lib/coffee-script/repl'
+  global.MateScript = MateScript
+  global.Repl = require './lib/matescript/repl'
 
   # Our test helper function for delimiting different test cases.
   global.test = (description, fn) ->
@@ -225,19 +226,19 @@ runTests = (CoffeeScript) ->
     currentFile = filename = path.join 'test', file
     code = fs.readFileSync filename
     try
-      CoffeeScript.run code.toString(), {filename, literate}
+      MateScript.run code.toString(), {filename, literate}
     catch error
       failures.push {filename, error}
   return !failures.length
 
 
-task 'test', 'run the CoffeeScript language test suite', ->
-  runTests CoffeeScript
+task 'test', 'run the MateScript language test suite', ->
+  runTests MateScript
 
 
 task 'test:browser', 'run the test suite against the merged browser script', ->
-  source = fs.readFileSync 'extras/coffee-script.js', 'utf-8'
+  source = fs.readFileSync 'extras/matescript.js', 'utf-8'
   result = {}
   global.testingBrowser = yes
   (-> eval source).call result
-  runTests result.CoffeeScript
+  runTests result.MateScript
