@@ -13,7 +13,7 @@
   },
   "main" : "./lib/matescript/matescript",
   "bin":          {
-    "mate":       "./bin/mate",
+    "mate":       "./bin/mate"
   },
   "homepage":     "http://matescript.com",
   "bugs":         "https://github.com/Se7enSky/matescript/issues",
