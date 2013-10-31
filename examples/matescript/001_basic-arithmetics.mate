@@ -1,0 +1,9 @@
+$a = 5
+$b = 8
+
+$sum = ($a, $b) ->
+	$a + $b
+
+echo $a + $b
+
+echo $sum $a, $b

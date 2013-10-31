@@ -348,7 +348,7 @@ exports.Block = class Block extends Base
         fragments.push @makeCode '\n' if i
         if declars
           fragments.push @makeCode "#{@tab}"
-          fragments.push @makeCode "$#{v} = " for v in scope.declaredVariables()
+          fragments.push @makeCode "#{v} = " for v in scope.declaredVariables()
           fragments.push @makeCode "null"
           fragments.push @makeCode ";\n#{if @spaced then '\n' else ''}"
         if assigns
@@ -1343,7 +1343,7 @@ exports.Code = class Code extends Base
     for p, i in params
       if i then answer.push @makeCode ", "
       answer.push p...
-    answer.push @makeCode ') use (?) {'
+    answer.push @makeCode ') {'
     answer = answer.concat(@makeCode("\n"), @body.compileWithDeclarations(o), @makeCode("\n#{@tab}")) unless @body.isEmpty()
     answer.push @makeCode '}'
 
