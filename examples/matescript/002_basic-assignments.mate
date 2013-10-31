@@ -1,0 +1,31 @@
+# number
+$a = 1
+var_dump $a
+
+# string
+$b = "just b"
+var_dump $b
+
+# array
+$c = [ 1, 2, 'three' ]
+var_dump $c
+
+# object
+$d = field1: 'value1', field2: "value2"
+var_dump $d
+
+# complex object
+$e =
+	field1: 'value1'
+	field2: "value2"
+	arr: [
+		'1',
+		2,
+		"3"
+	]
+	b: off
+var_dump $e
+
+# bool
+$f = on
+var_dump $f
